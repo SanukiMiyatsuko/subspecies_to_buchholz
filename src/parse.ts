@@ -41,9 +41,14 @@ export class Scanner {
         return true;
     }
 
-    consumeStrHead(): boolean {
+    expectStrHead(): boolean {
         const ch = this.str[this.pos];
-        if (ch !== "A" && ch !== "亞") return false;
+        if (ch === undefined)
+            throw Error(
+                `${this.pos + 1}文字目に亞もしくはAが期待されていましたが、これ以上文字がありません`,
+            );
+        if (ch !== "亜" && ch !== "a")
+            throw Error(`${this.pos + 1}文字目に亞もしくはAが期待されていましたが、${ch}が見つかりました`);
         this.pos += 1;
         return true;
     }
@@ -119,14 +124,15 @@ export class Scanner {
         } else if (this.consume("I")) {
             return IOTA_S;
         } else {
-            this.consumeStrHead();
+            this.expectStrHead()
             const argarr: T_S[] = [];
             if (this.consume("(")) {
                 const term = this.parse_term();
                 argarr.push(term);
                 if (this.consume(")")) return subs(argarr);
                 this.expect(",");
-            } else if (this.consume("_")) {
+            } else {
+                this.consume("_");
                 if (this.consume("{")) {
                     const term = this.parse_term();
                     argarr.push(term);
@@ -137,15 +143,6 @@ export class Scanner {
                     argarr.push(term);
                     this.expect("(");
                 }
-            } else if (this.consume("{")) {
-                const term = this.parse_term();
-                argarr.push(term);
-                this.expect("}");
-                this.expect("(");
-            } else {
-                const term = this.parse_term();
-                argarr.push(term);
-                this.expect("(");
             }
             const arg = this.parse_term();
             argarr.push(arg);
