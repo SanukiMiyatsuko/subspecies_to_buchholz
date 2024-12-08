@@ -117,7 +117,7 @@ export function ptL(n: number, s: RT_B): RT_B {
     }
 }
 
-// nより大きい方
+// nより小さい方
 export function ptS(n: number, s: RT_B): RT_B {
     if (s.type === "zero") {
         return Z;
