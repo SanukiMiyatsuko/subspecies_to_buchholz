@@ -1,6 +1,7 @@
-import { T_S, PT_S, AT_S, Z, ONE_S, OMEGA_S, IOTA_S, LOMEGA_S, sanitize_plus_term_S, subs } from "./code";
+import { T_S, PT_S, Z, ONE_S, OMEGA_S, IOTA_S, LOMEGA_S, sanitize_plus_term_S, subs } from "./code";
 
-function from_nat(num: number): PT_S | AT_S {
+function from_nat(num: number): T_S {
+    if (num === 0) return Z;
     const numterm: PT_S[] = [];
     while (num > 0) {
         numterm.push(ONE_S);
@@ -41,13 +42,6 @@ export class Scanner {
         return true;
     }
 
-    consumeStrHead(): boolean {
-        const ch = this.str[this.pos];
-        if (ch !== "亞" && ch !== "A") return false;
-        this.pos += 1;
-        return true;
-    }
-
     // 次の文字が期待した文字なら1文字進める。
     // 次の文字が期待した文字でないなら例外を投げる。
     expect(op: string): void {
@@ -61,14 +55,14 @@ export class Scanner {
         this.pos += 1;
     }
 
-    parse_number(): number {
+    parse_number(): T_S {
         let num = parseInt(this.str[this.pos]);
         this.pos += 1;
         while (is_numchar(this.str[this.pos])) {
             num = num * 10 + parseInt(this.str[this.pos]);
             this.pos += 1;
         }
-        return num;
+        return from_nat(num);
     }
 
     // 式をパース
@@ -78,27 +72,14 @@ export class Scanner {
             return Z;
         } else {
             let list: PT_S[] = [];
-            if (is_numchar(this.str[this.pos])) {
-                // 0以外の数字にマッチ
-                const num = this.parse_number();
-                const fn = from_nat(num);
-                if (fn.type === "plus") list = fn.add;
-                else list.push(fn);
-            } else {
-                const first = this.parse_principal();
-                list.push(first);
-            }
-            while (this.consume("+")) {
-                let term: AT_S | PT_S;
-                if (is_numchar(this.str[this.pos])) {
-                    const num = this.parse_number();
-                    term = from_nat(num);
-                } else {
-                    term = this.parse_principal();
-                }
-                if (term.type === "plus") list = list.concat(term.add);
+            do {
+                let term: T_S;
+                if (is_numchar(this.str[this.pos])) term = this.parse_number();
+                else term = this.parse_principal();
+                if (term.type === "zero") throw Error(`0は+で接続できません`);
+                else if (term.type === "plus") list = list.concat(term.add);
                 else list.push(term);
-            }
+            } while (this.consume("+"));
             return sanitize_plus_term_S(list);
         }
     }
@@ -115,45 +96,40 @@ export class Scanner {
             return IOTA_S;
         } else {
             const argarr: T_S[] = [];
-            if (this.consumeStrHead()) {
+            let sub: T_S;
+            if (this.consume("A") || this.consume("亞")) {
                 if (this.consume("(")) {
-                    const term = this.parse_term();
-                    argarr.push(term);
-                    if (this.consume(")")) return subs(argarr);
+                    sub = this.parse_term();
+                    if (this.consume(")")) return subs([sub]);
                     this.expect(",");
                 } else {
                     this.consume("_");
                     if (this.consume("{")) {
-                        const term = this.parse_term();
-                        argarr.push(term);
+                        sub = this.parse_term();
                         this.expect("}");
                         this.expect("(");
                     } else {
-                        const term = this.parse_term();
-                        argarr.push(term);
+                        sub = this.parse_term();
                         this.expect("(");
                     }
                 }
             } else {
                 if (this.consume("(")) {
-                    const term = this.parse_term();
-                    argarr.push(term);
-                    if (this.consume(")")) return subs(argarr);
+                    sub = this.parse_term();
+                    if (this.consume(")")) return subs([sub]);
                     this.expect(",");
                 } else {
                     this.expect("{");
-                    const term = this.parse_term();
-                    argarr.push(term);
+                    sub = this.parse_term();
                     this.expect("}");
                     this.expect("(");
                 }
             }
-            const arg = this.parse_term();
-            argarr.push(arg);
-            while (this.consume(",")) {
+            argarr.push(sub);
+            do {
                 const term = this.parse_term();
                 argarr.push(term);
-            }
+            } while (this.consume(","));
             this.expect(")");
             return subs(argarr.reverse());
         }

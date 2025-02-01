@@ -70,7 +70,7 @@ function App() {
           <ul>
             <li><label className="checkbox">
               <input type="checkbox" checked={options.checkOnOffo} onChange={() => handleCheckboxChange('checkOnOffo')} />
-              &nbsp;ψ_0(1)をωで出力
+              &nbsp;ψ{options.checkOnOffB ? `(1)` : `${options.checkOnOffA ? `_0(1)` : `(0,1)`}`}をωで出力
             </label></li>
             <li><label className="checkbox">
               <input type="checkbox" checked={options.checkOnOffO} onChange={() => handleCheckboxChange('checkOnOffO')} />
