@@ -215,7 +215,7 @@ export function trans(s: T_S): RT_B {
         const a = s.arr;
         let k_max = a.length-1;
         while (k_max > -1) {
-            if (!(a[k_max].type === "zero")) break;
+            if (a[k_max].type !== "zero") break;
             k_max--;
         }
         if (k_max === -1) return ONE_B;
